@@ -1,5 +1,5 @@
-# <span style="font-variant:small-caps;">SNex-GNN</span> 
-
+# SNEX-GNN 
+Code implementation of AAAI 2023 paper "**Self-Interpretable Graph Learning with Sufficient and Necessary Explanations**".
 ## Environment Setup
 
 - Python 3.7
