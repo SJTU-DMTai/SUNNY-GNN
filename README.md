@@ -14,7 +14,7 @@ Datasets are provided in the `dataset` folder. Take Citeseer as example:
 
 - `citeseer_graph.bin`: graph data;
 - `citeseer_index.bin`: Training, validation, and test set split and label information;
-- `citeseer_sb.bin`:The cached computation graph for each node, which will be automatically generated when running the code for the first time.
+- `citeseer_sg.bin`:The cached computation graph for each node, which will be automatically generated when running the code for the first time.
 
 ### Homogeneous Graph Data
 
