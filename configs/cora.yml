@@ -1,0 +1,41 @@
+data:
+  target_ntype: '_N'
+  num_classes: 7
+
+gat:
+  n_epochs: 100
+  learning_rate: 0.002
+
+gcn:
+  n_epochs: 100
+  learning_rate: 0.002
+
+common:
+  learning_rate: 0.002
+  n_epochs: &n_epochs 100
+  batch_size: 64
+
+snexgnn:
+  gat:
+    temp: 1
+    cts_coef: 0.1
+    n_pos: 10
+    n_neg: 10
+    max_topk: 0.3
+    min_topk: 0.1
+    max_epoch: *n_epochs
+    k: 0.05
+    tau: 0.1
+    dropout: 0.5
+  gcn:
+    temp: 1
+    cts_coef: 0.01
+    n_pos: 10
+    n_neg: 10
+    max_topk: 0.3
+    min_topk: 0.1
+    max_epoch: *n_epochs
+    k: 0.05
+    tau: 0.1
+    dropout: 0.5
+
