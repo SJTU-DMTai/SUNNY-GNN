@@ -1,5 +1,8 @@
 # SNEX-GNN 
-Code implementation of AAAI 2023 paper "**Self-Interpretable Graph Learning with Sufficient and Necessary Explanations**".
+Code implementation of AAAI 2024 paper "**Self-Interpretable Graph Learning with Sufficient and Necessary Explanations**". This work proposes a self-interpretable graph learning framework SNEX-GNN. Empowered by the contrastive learning, SNEX-GNN is able to generate both sufficient and necessary explanations that are beneficial  to the training of GNNs. The whole workflow of SNEX-GNN is presented as follows:
+
+![framework](./framework.png)
+
 ## Environment Setup
 
 - Python 3.7
