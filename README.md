@@ -1,5 +1,5 @@
-# SNEX-GNN 
-Official code implementation and supplementary material of AAAI 2024 paper "**Self-Interpretable Graph Learning with Sufficient and Necessary Explanations**". This work proposes a self-interpretable graph learning framework named SNEX-GNN. Empowered by the contrastive learning, SNEX-GNN is able to generate both sufficient and necessary explanations that are beneficial  to the training of GNNs. The end-to-end training flow of SNEX-GNN is presented as follows:
+# SUNNY-GNN 
+Official code implementation and supplementary material of AAAI 2024 paper "**Self-Interpretable Graph Learning with Sufficient and Necessary Explanations**". This work proposes a self-interpretable graph learning framework named SUNNY-GNN. Empowered by the contrastive learning, SNEX-GNN is able to generate both sufficient and necessary explanations that are beneficial  to the training of GNNs. The end-to-end training flow of SNEX-GNN is presented as follows:
 
 <img width="50%" src ="./framework.png"/>
 
