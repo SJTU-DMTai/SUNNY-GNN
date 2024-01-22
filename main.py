@@ -4,28 +4,24 @@ import os
 import torch
 import random
 import copy
+import dgl
 import numpy as np
-from train import train_baseline, train_gnn, train_hgn
+from train import train_baseline, train_gnn
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Self-explainable GNN/HGN")
-    parser.add_argument('--method', type=str, default='snexgnn',
-                        help='self-explainable GNN/HGN type',
-                        choices=['snexgnn', 'snexhgn', 'gat', 'gcn', 'simplehgn'])
-    parser.add_argument('--encoder', type=str, default='gat',
-                        help='GNN/HGN encoder type',
-                        choices=['gat', 'gcn', 'simplehgn'])
-    parser.add_argument('--dataset', type=str, default='citeseer',
-                        help='dataset name',
+    parser = argparse.ArgumentParser(description='Self-explainable GNN')
+    parser.add_argument('--method', type=str, default='sunny-gnn', help='self-explainable GNN type',
+                        choices=['sunny-gnn', 'gat', 'gcn'])
+    parser.add_argument('--encoder', type=str, default='gat', help='GNN encoder type',
+                        choices=['gat', 'gcn'])
+    parser.add_argument('--dataset', type=str, default='cora', help='dataset name',
                         choices=['citeseer', 'cora', 'pubmed',
-                                 'amazon-photo', 'coauthor-physics', 'coauthor-cs',
-                                 'imdb', 'dblp', 'acm'])
+                                 'amazon-photo', 'coauthor-physics', 'coauthor-cs'])
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--num_seeds', type=int, default=1, help='number of random seeds')
     parser.add_argument('--eval_explanation', type=bool, default=False,
                             help='whether to evaluate explanation fidelity')
-
     return parser.parse_args()
 
 
@@ -72,6 +68,7 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    dgl.seed(seed)
 
 
 def main():
@@ -83,7 +80,7 @@ def main():
         cfg.set_seed(seed)
         print(f'===========seed: {seed}===========')
 
-        if cfg.method in ['snexgnn', 'snexhgn']:
+        if cfg.method == 'sunny-gnn':
             print(f"Dataset: {cfg.dataset}, Method: {cfg.method}-{cfg.encoder_type}")
 
             if not os.path.exists(cfg.encoder_path):
@@ -100,9 +97,6 @@ def main():
         elif cfg.method in ['gat', 'gcn']:
             print(f"Dataset: {cfg.dataset}, Method: {cfg.method}")
             metrics = train_gnn.train(cfg)
-        elif cfg.method in ['simplehgn']:
-            print(f"Dataset: {cfg.dataset}, Method: {cfg.method}")
-            metrics = train_hgn.train(cfg)
         else:
             raise NotImplementedError
 

@@ -20,7 +20,7 @@ class ExtractorMLP(nn.Module):
         return att_log_logits
 
 
-class SNexGNN(nn.Module):
+class SunnyGNN(nn.Module):
     def __init__(self, pret_encoder, encoder, extractor, in_dim, target_ntype, n_heads=1, dropout=0.5):
         super().__init__()
         self.pret_encoder = pret_encoder
@@ -220,90 +220,3 @@ class SNexGNN(nn.Module):
 
             return enc_logits, None
 
-
-class SNexHGN(SNexGNN):
-    def __init__(self, pret_encoder, encoder, extractor, in_dim, target_ntype, n_heads=1, dropout=0.5):
-        super(SNexHGN, self).__init__(pret_encoder, encoder, extractor, in_dim, target_ntype, n_heads, dropout)
-        self.sparsity_mask_coef = 1e-5
-        self.sparsity_ent_coef = 1e-5
-
-    def get_edge_att_hetero(self, g, all_emb, e_batch, h_target, etype, ntypes):
-        def calc_att(mask, hop_batch, k):
-            n_map_src = g.ndata['_ID'][ntypes[0]]
-            n_map_dst = g.ndata['_ID'][ntypes[1]]
-            e = g.edges(etype=etype)[0][mask], g.edges(etype=etype)[1][mask]
-            src_emb = self.f[k - 1][ntypes[0]](all_emb[k - 1][ntypes[0]][n_map_src[e[0]]])
-            dst_emb = self.f[k][ntypes[1]](all_emb[k][ntypes[1]][n_map_dst[e[1]]])
-            emb = torch.cat([src_emb, dst_emb, h_target[hop_batch]], dim=1)
-            att = self.extractor(emb)
-            return att
-
-        e_h_mask = g.edata['e_h_mask'][(ntypes[0], etype, ntypes[1])].T
-        one_hop_mask = torch.nonzero(e_h_mask[0]).view(-1)
-        if one_hop_mask.shape[0] > 0:
-            one_hop_att = calc_att(one_hop_mask, e_batch[one_hop_mask], k=2)
-        else:
-            one_hop_att = torch.tensor([]).view(0, 1).to(g.device)
-
-        two_hop_mask = torch.nonzero(e_h_mask[1]).view(-1)
-        if two_hop_mask.shape[0] > 0:
-            two_hop_att = calc_att(two_hop_mask, e_batch[two_hop_mask], k=1)
-        else:
-            two_hop_att = torch.tensor([]).view(0, 1).to(g.device)
-
-        edge_att = torch.zeros((2, g.num_edges(etype), 1), device=g.device)
-        edge_att[:, :, :] = self.MIN_WEIGHT
-        edge_att[0][two_hop_mask] = two_hop_att
-        edge_att[1][one_hop_mask] = one_hop_att
-
-        return edge_att
-
-    def batched_emb_hetero(self, g, x, batched_edge_mask, n_samples, idx):
-        g.ndata['x'] = x
-        gs = dgl.batch([g] * n_samples)
-        x = gs.ndata.pop('x')
-        self.encoder.set_graph(gs)
-        for etp in batched_edge_mask.keys():
-            batched_edge_mask[etp] = batched_edge_mask[etp].view(2, -1, 1).to(gs.device)
-        h = self.encoder.get_emb(x, batched_edge_mask)[self.target_ntype]
-        h = h.view(int(gs.number_of_nodes(self.target_ntype) / n_samples), n_samples, -1, h.shape[-1]).mean(2)
-        offset = torch.cat([torch.tensor([0], device=gs.device),
-                            gs.batch_num_nodes(self.target_ntype).cumsum(dim=0)[:int(gs.batch_size / n_samples) - 1]])
-        proj = self.proj_head(h[offset])
-        logits = self.encoder(h, self.target_ntype, offset)
-        logits = torch.softmax(logits, dim=2)
-        del gs
-        return proj[idx], logits[idx]
-
-    def forward(self, g, all_emb, labels, training=False, epoch=0):
-        x = {}
-        for k in g.ndata['_ID']:
-            x[k] = all_emb[0][k][g.ndata['_ID'][k]]
-        with g.local_scope():
-            offset_node = torch.cat([torch.tensor([0], device=g.device),
-                                     g.batch_num_nodes(self.target_ntype).cumsum(dim=0)[:-1]])
-            h_target = self.f[2][self.target_ntype](
-                all_emb[2][self.target_ntype][g.ndata['_ID'][self.target_ntype][offset_node]])
-            edge_att = {}
-            for src_ntype, etype, dst_ntype in g.canonical_etypes:
-                e_batch = torch.repeat_interleave(torch.arange(g.batch_size, device=g.device),
-                                                  g.batch_num_edges(etype))
-                e_att = self.get_edge_att_hetero(g, all_emb, e_batch, h_target, etype, [src_ntype, dst_ntype])
-                e_att = self.sampling(e_att, training)
-                edge_att[etype] = e_att
-            self.encoder.set_graph(g)
-            enc_emb = self.encoder.get_emb(x, edge_att)
-            enc_logits = self.encoder(enc_emb, self.target_ntype, offset_node)
-            if training:
-                pred_loss = self.loss(edge_att, enc_logits, labels)
-                g.edata['e_att'] = {k: v.view(2, g.num_edges(k)).T for k, v in edge_att.items()}
-                enc_proj = self.proj_head(enc_emb[self.target_ntype][offset_node])
-                topk = self.max_topk - (self.max_topk - self.min_topk) * epoch / self.max_epoch
-                pos_edge_att, neg_edge_att, cts_idxs = self.get_cts_mask(g, topk, k=0.1)
-                pos_enc_proj, pos_enc_logits = self.batched_emb_hetero(g, x, pos_edge_att, self.n_pos, cts_idxs)
-                neg_enc_proj, neg_enc_logits = self.batched_emb_hetero(g, x, neg_edge_att, self.n_neg, cts_idxs)
-                cts_loss = self.cts_loss(enc_proj[cts_idxs], pos_enc_proj, neg_enc_proj, pos_enc_logits,
-                                             neg_enc_logits, labels[cts_idxs])
-                return enc_logits, [pred_loss, cts_loss]
-
-            return enc_logits, None

@@ -15,7 +15,7 @@ common:
   n_epochs: &n_epochs 100
   batch_size: 16
 
-snexgnn:
+sunny-gnn:
   gat:
     temp: 1
     cts_coef: 0.01
