@@ -15,11 +15,11 @@ def parse_args():
                         choices=['sunny-gnn', 'gat', 'gcn'])
     parser.add_argument('--encoder', type=str, default='gat', help='GNN encoder type',
                         choices=['gat', 'gcn'])
-    parser.add_argument('--dataset', type=str, default='cora', help='dataset name',
+    parser.add_argument('--dataset', type=str, default='coauthor-cs', help='dataset name',
                         choices=['citeseer', 'cora', 'pubmed',
                                  'amazon-photo', 'coauthor-physics', 'coauthor-cs'])
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
-    parser.add_argument('--num_seeds', type=int, default=1, help='number of random seeds')
+    parser.add_argument('--num_seeds', type=int, default=5, help='number of random seeds')
     parser.add_argument('--eval_explanation', type=bool, default=False,
                             help='whether to evaluate explanation fidelity')
     return parser.parse_args()
@@ -28,8 +28,6 @@ def parse_args():
 class Config(object):
     def __init__(self, args):
         abs_dir = os.path.dirname(os.path.realpath(__file__))
-        log_dir = os.path.join(abs_dir, 'log')
-        os.makedirs(log_dir, exist_ok=True)
         data_dir = os.path.join(abs_dir, 'dataset', args.dataset)
         self.method = args.method
         self.encoder_type = args.encoder
@@ -90,7 +88,7 @@ def main():
                 train_gnn.train(cfg_cp)
 
             if cfg.eval_explanation:
-                metrics = train_baseline.train_explain(cfg)
+                metrics = train_baseline.explain(cfg)
             else:
                 print(f"Train {cfg.method}...")
                 metrics = train_baseline.train(cfg)

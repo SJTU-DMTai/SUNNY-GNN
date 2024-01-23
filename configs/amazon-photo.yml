@@ -1,5 +1,4 @@
 data:
-  target_ntype: '_N'
   num_classes: 8
 
 gat:
@@ -18,7 +17,7 @@ common:
 sunny-gnn:
   gat:
     temp: 1
-    cts_coef: 0.01
+    cts_coef: 0.001
     n_pos: 2
     n_neg: 2
     max_topk: 0.5

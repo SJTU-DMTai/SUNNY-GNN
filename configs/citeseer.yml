@@ -1,5 +1,4 @@
 data:
-  target_ntype: '_N'
   num_classes: 6
 
 gat:
@@ -11,7 +10,7 @@ gcn:
   learning_rate: 0.002
 
 common:
-  learning_rate: 0.002
+  learning_rate: 0.001
   n_epochs: &n_epochs 100
   batch_size: 64
 
@@ -19,21 +18,21 @@ sunny-gnn:
   gat:
     temp: 1
     cts_coef: 0.01
-    n_pos: 1
-    n_neg: 1
-    max_topk: 0.3
-    min_topk: 0.1
+    n_pos: 10
+    n_neg: 10
+    max_topk: 0.7
+    min_topk: 0.3
     max_epoch: *n_epochs
-    k: 0.05
+    k: 0.1
     tau: 0.1
     dropout: 0.5
   gcn:
     temp: 1
     cts_coef: 0.01
-    n_pos: 10
-    n_neg: 10
-    max_topk: 0.3
-    min_topk: 0.1
+    n_pos: 5
+    n_neg: 5
+    max_topk: 0.7
+    min_topk: 0.3
     max_epoch: *n_epochs
     k: 0.05
     tau: 0.1

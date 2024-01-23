@@ -1,5 +1,4 @@
 data:
-  target_ntype: '_N'
   num_classes: 3
 
 gat:
@@ -21,10 +20,10 @@ sunny-gnn:
     cts_coef: 0.1
     n_pos: 10
     n_neg: 10
-    max_topk: 0.3
-    min_topk: 0.1
+    max_topk: 0.7
+    min_topk: 0.3
     max_epoch: *n_epochs
-    k: 0.05
+    k: 0.1
     tau: 0.1
     dropout: 0.5
   gcn:
@@ -32,8 +31,8 @@ sunny-gnn:
     cts_coef: 0.1
     n_pos: 10
     n_neg: 10
-    max_topk: 0.3
-    min_topk: 0.1
+    max_topk: 0.7
+    min_topk: 0.3
     max_epoch: *n_epochs
     k: 0.05
     tau: 0.1

@@ -23,9 +23,9 @@ Datasets are provided in the `dataset` folder. Take Citeseer as example:
 
 ### Graph Data
 
-The homogeneous graph datasets we utilize include Citeseer, Cora, Pubmed, Amazon-Photo, Coauthor-CS, and Coauthor-Physics. These datasets are part of the standard dataset collection available in the [dgl](https://docs.dgl.ai/en/1.0.x/api/python/dgl.data.html#node-prediction-datasets) documentation. 
+The graph datasets we utilize include Citeseer, Cora, Pubmed, Amazon-Photo, Coauthor-CS, and Coauthor-Physics. These datasets are part of the standard dataset collection available in the [dgl](https://docs.dgl.ai/en/1.0.x/api/python/dgl.data.html#node-prediction-datasets) documentation. 
 
-Run our code and it will automatically download these datasets and their training and testing splits from dgl. Note that for Amazon-Photo, Coauthor-CS, and Coauthor-Physics, there is no standard split of training and testing set by dgl, we provide our split in as `{dataset_name}_index_pre.bin`. 
+Run our code and it will automatically download these datasets and their training and testing splits from dgl. Note that for Amazon-Photo, Coauthor-CS, and Coauthor-Physics, there is no standard split of training and testing set by dgl, we provide our split in [SUNNY_GNN_pre_index_split](https://1drv.ms/f/s!AjVU9oyUKy7HhYF8GaM47crMx9WoMw?e=emv6Dc). 
 
 ## Running the Code
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.utils import aug_mask, aug_mask_hetero
+from models.utils import aug_mask
 import dgl
 
 
@@ -21,39 +21,20 @@ class ExtractorMLP(nn.Module):
 
 
 class SunnyGNN(nn.Module):
-    def __init__(self, pret_encoder, encoder, extractor, in_dim, target_ntype, n_heads=1, dropout=0.5):
+    def __init__(self, pret_encoder, encoder, extractor, in_dim, n_heads=1, dropout=0.5):
         super().__init__()
         self.pret_encoder = pret_encoder
         self.encoder = encoder
         self.extractor = extractor
-        self.target_ntype = target_ntype
-        if type(in_dim) == dict:
-            self.hetero = True
-        else:
-            self.hetero = False
         hid_dim = 32
         relu = nn.ReLU()
         drop = nn.Dropout(dropout)
-        if self.hetero:
-            f0 = nn.ModuleDict()
-            for key in in_dim.keys():
-                f0[key] = nn.Sequential(nn.Linear(in_dim[key], hid_dim, bias=False), relu, drop)
-            f1 = nn.ModuleDict()
-            for key in in_dim.keys():
-                f1[key] = nn.Sequential(nn.Linear(32 * n_heads, hid_dim, bias=False), relu, drop)
-            f2 = nn.ModuleDict(
-                {target_ntype: nn.Sequential(nn.Linear(32 * n_heads, hid_dim, bias=False), relu, drop)})
-            self.f = nn.ModuleList([f0, f1, f2])
-        else:
-            self.f = nn.ModuleList([
-                nn.Sequential(nn.Linear(in_dim, hid_dim, bias=False), relu, drop),
-                nn.Sequential(nn.Linear(256, hid_dim, bias=False), relu, drop),
-                nn.Sequential(nn.Linear(64, hid_dim, bias=False), relu, drop)])
+        self.f = nn.ModuleList([
+            nn.Sequential(nn.Linear(in_dim, hid_dim, bias=False), relu, drop),
+            nn.Sequential(nn.Linear(256, hid_dim, bias=False), relu, drop),
+            nn.Sequential(nn.Linear(64, hid_dim, bias=False), relu, drop)])
 
-        if self.hetero:
-            self.proj_head = nn.Sequential(nn.Linear(32 * n_heads, 32, bias=False), relu, drop)
-        else:
-            self.proj_head = nn.Sequential(nn.Linear(64, 32, bias=False), relu, drop)
+        self.proj_head = nn.Sequential(nn.Linear(64, 32, bias=False), relu, drop)
 
         self.sparsity_mask_coef = 1e-4
         self.sparsity_ent_coef = 1e-2
@@ -80,31 +61,14 @@ class SunnyGNN(nn.Module):
 
     def sparsity(self, edge_mask, eps=1e-6):
         sparsity = 0.
-        if self.hetero:
-            s_size = 0.
-            s_ent = 0.
-            n_edges = 0
-            for k, v in edge_mask.items():
-                s_size += v.sum()
-                ent = -v * torch.log(v + eps) - (1 - v) * torch.log(1 - v + eps)
-                s_ent += ent.sum()
-                n_edges += v.shape[0]
-            sparsity += self.sparsity_mask_coef * (s_size / n_edges)
-            sparsity += self.sparsity_ent_coef * (s_ent / n_edges)
-        else:
-            ent = -edge_mask * torch.log(edge_mask + eps) - (1 - edge_mask) * torch.log(1 - edge_mask + eps)
-            sparsity += self.sparsity_mask_coef * edge_mask.mean()
-            sparsity += self.sparsity_ent_coef * ent.mean()
+        ent = -edge_mask * torch.log(edge_mask + eps) - (1 - edge_mask) * torch.log(1 - edge_mask + eps)
+        sparsity += self.sparsity_mask_coef * edge_mask.mean()
+        sparsity += self.sparsity_ent_coef * ent.mean()
         return sparsity
 
     def get_cts_mask(self, g, topk, k):
         with torch.no_grad():
-            if self.hetero:
-                pos_edge_mask, neg_edge_mask, cts_index = \
-                    aug_mask_hetero(g, self.n_pos, self.n_neg, topk, k)
-            else:
-                pos_edge_mask, neg_edge_mask, cts_index = \
-                    aug_mask(g, self.n_pos, self.n_neg, topk, k)
+            pos_edge_mask, neg_edge_mask, cts_index = aug_mask(g, self.n_pos, self.n_neg, topk, k)
         return pos_edge_mask, neg_edge_mask, cts_index
 
     def cts_loss(self, anchor_emb, pos_emb, neg_emb, pos_logits, neg_logits, labels):

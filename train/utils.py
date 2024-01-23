@@ -44,33 +44,32 @@ def get_model(cfg):
     ckpt_dir = cfg.ckpt_dir
     encoder_type = cfg.encoder_type
     num_classes = data_hyparams['num_classes']
-    target_ntype = data_hyparams['target_ntype']
 
     gs, _ = dgl.load_graphs(graph_path)
     g = gs[0]
     if g.is_homogeneous:
         g = dgl.add_self_loop(g)
-    in_dim = {n: g.nodes[n].data['nfeat'].shape[1] for n in g.ntypes}
+    in_dim = g.ndata['nfeat'].shape[1]
     info = torch.load(index_path)
 
     if method == 'gat':
-        model = gat.GAT(in_dim[target_ntype], 256, 64, [8, 1], num_classes)
+        model = gat.GAT(in_dim, 256, 64, [8, 1], num_classes)
 
     elif method == 'gcn':
-        model = gcn.GCN(in_dim[target_ntype], 256, 64, num_classes)
+        model = gcn.GCN(in_dim, 256, 64, num_classes)
 
     elif method == 'sunny-gnn':
         method_cfg = cfg.hyparams[method][cfg.encoder_type]
         if encoder_type == 'gat':
-            pret_encoder = gat.GAT(in_dim[target_ntype], 256, 64, [8, 1], num_classes)
-            encoder = gat.GAT(in_dim[target_ntype], 256, 64, [8, 1], num_classes)
+            pret_encoder = gat.GAT(in_dim, 256, 64, [8, 1], num_classes)
+            encoder = gat.GAT(in_dim, 256, 64, [8, 1], num_classes)
         elif encoder_type == 'gcn':
-            pret_encoder = gcn.GCN(in_dim[target_ntype], 256, 64, num_classes)
-            encoder = gcn.GCN(in_dim[target_ntype], 256, 64, num_classes)
+            pret_encoder = gcn.GCN(in_dim, 256, 64, num_classes)
+            encoder = gcn.GCN(in_dim, 256, 64, num_classes)
 
         pret_encoder.load_state_dict(torch.load(f'{ckpt_dir}/{dataset}/{encoder_type}-seed-{cfg.seed}-pretrain.pt'))
-        for param in pret_encoder.parameters():
-            param.requires_grad = False
+        # for param in pret_encoder.parameters():
+        #     param.requires_grad = False
 
         if cfg.eval_explanation:
             encoder.load_state_dict(torch.load(f'{ckpt_dir}/{dataset}/{encoder_type}-seed-{cfg.seed}-pretrain.pt'))
@@ -78,8 +77,7 @@ def get_model(cfg):
                 param.requires_grad = False
 
         extractor = sunnygnn.ExtractorMLP(96, False)
-        model = sunnygnn.SunnyGNN(pret_encoder, encoder, extractor, in_dim[target_ntype], target_ntype,
-                                  dropout=method_cfg['dropout'])
+        model = sunnygnn.SunnyGNN(pret_encoder, encoder, extractor, in_dim, dropout=method_cfg['dropout'])
         model.set_config(cfg.hyparams[method][cfg.encoder_type])
     else:
         raise NotImplementedError
