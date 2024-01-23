@@ -68,13 +68,6 @@ def get_model(cfg):
             encoder = gcn.GCN(in_dim, 256, 64, num_classes)
 
         pret_encoder.load_state_dict(torch.load(f'{ckpt_dir}/{dataset}/{encoder_type}-seed-{cfg.seed}-pretrain.pt'))
-        # for param in pret_encoder.parameters():
-        #     param.requires_grad = False
-
-        if cfg.eval_explanation:
-            encoder.load_state_dict(torch.load(f'{ckpt_dir}/{dataset}/{encoder_type}-seed-{cfg.seed}-pretrain.pt'))
-            for param in encoder.parameters():
-                param.requires_grad = False
 
         extractor = sunnygnn.ExtractorMLP(96, False)
         model = sunnygnn.SunnyGNN(pret_encoder, encoder, extractor, in_dim, dropout=method_cfg['dropout'])

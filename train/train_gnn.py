@@ -73,8 +73,7 @@ def train(cfg):
             labels = torch.cat([labels, label.detach().cpu()])
         valid_acc = accuracy(preds, labels)
         if epoch % debug_epoch == 0:
-            print(f"Epoch: {epoch}\t Train pred Loss: {train_pred_loss:.4f}, "
-                  f"Train Acc: {train_acc:.4f}, Validation Acc: {valid_acc:.4f}, ")
+            print(f"Epoch: {epoch}\t Train Loss: {train_pred_loss:.4f}")
 
         if valid_acc > best_acc:
             best_acc = valid_acc

@@ -15,13 +15,11 @@ def parse_args():
                         choices=['sunny-gnn', 'gat', 'gcn'])
     parser.add_argument('--encoder', type=str, default='gat', help='GNN encoder type',
                         choices=['gat', 'gcn'])
-    parser.add_argument('--dataset', type=str, default='coauthor-cs', help='dataset name',
+    parser.add_argument('--dataset', type=str, default='citeseer', help='dataset name',
                         choices=['citeseer', 'cora', 'pubmed',
                                  'amazon-photo', 'coauthor-physics', 'coauthor-cs'])
     parser.add_argument('--gpu', type=int, default=0, help='gpu id')
     parser.add_argument('--num_seeds', type=int, default=5, help='number of random seeds')
-    parser.add_argument('--eval_explanation', type=bool, default=False,
-                            help='whether to evaluate explanation fidelity')
     return parser.parse_args()
 
 
@@ -41,7 +39,6 @@ class Config(object):
         self.check_dataset()
         self.ckpt_dir = os.path.join(abs_dir, 'ckpt')
         self.hyparams = self.load_hyperparams(args)
-        self.eval_explanation = args.eval_explanation
 
     def check_dataset(self):
         if not os.path.exists(self.graph_path):
@@ -87,11 +84,8 @@ def main():
                 cfg_cp.method = cfg_cp.encoder_type
                 train_gnn.train(cfg_cp)
 
-            if cfg.eval_explanation:
-                metrics = train_baseline.explain(cfg)
-            else:
-                print(f"Train {cfg.method}...")
-                metrics = train_baseline.train(cfg)
+            print(f"Train {cfg.method}...")
+            metrics = train_baseline.train(cfg)
         elif cfg.method in ['gat', 'gcn']:
             print(f"Dataset: {cfg.dataset}, Method: {cfg.method}")
             metrics = train_gnn.train(cfg)

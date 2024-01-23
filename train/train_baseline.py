@@ -1,7 +1,6 @@
 import copy
 import numpy as np
 from train.utils import *
-from tools.fidelity import *
 from dgl.dataloading import GraphDataLoader
 
 
@@ -79,8 +78,7 @@ def train(cfg):
             labels = torch.cat([labels, label.detach().cpu()])
         valid_acc = accuracy(preds, labels)
         if epoch % debug_epoch == 0:
-            print(f"Epoch: {epoch}\t Train Loss: {train_pred_loss:.4f}, "
-                   f"Train Acc: {train_acc:.4f}, Validation Acc: {valid_acc:.4f}, ")
+            print(f"Epoch: {epoch}\t Train Loss: {train_pred_loss:.4f}")
 
         if valid_acc >= best_acc:
             best_acc = valid_acc
@@ -107,68 +105,6 @@ def train(cfg):
     if not os.path.exists(f'ckpt/{cfg.dataset}'):
         os.makedirs(f'ckpt/{cfg.dataset}')
     torch.save(model.state_dict(), f'ckpt/{cfg.dataset}/{method}-{cfg.encoder_type}-seed-{cfg.seed}.pt')
-    for k, v in metrics.items():
-        print(f"{k}: {np.mean(v)}")
-
-    return metrics
-
-
-def explain(cfg):
-    method = cfg.method
-    common_cfg = cfg.hyparams['common']
-    batch_size = common_cfg['batch_size']
-
-    device = torch.device(f"cuda:{cfg.gpu}" if torch.cuda.is_available() else "cpu")
-    gw, explainer, info = get_model(cfg)
-    explainer.to(device)
-    xw = gw.ndata.pop('nfeat').to(device)
-
-    cfg_cp = copy.deepcopy(cfg)
-    cfg_cp.method = cfg_cp.encoder_type
-    _, gnn_model, _ = get_model(cfg_cp)
-    gnn_model.load_state_dict(
-        torch.load(f'{cfg.ckpt_dir}/{cfg.dataset}/{cfg_cp.method}-seed-{cfg.seed}-pretrain.pt'))
-    gnn_model.to(device)
-    gnn_model.eval()
-
-    if type(xw) == dict:
-        for key in xw.keys():
-            xw[key] = xw[key].to(device)
-    else:
-        xw = xw.to(device)
-
-    _, _, test_set, _ = construct_dataset(gw, info, cfg)
-    test_loader = GraphDataLoader(test_set, batch_size=batch_size, shuffle=False)
-
-    explainer.load_state_dict(
-        torch.load(f'{cfg.ckpt_dir}/{cfg.dataset}/{method}-{cfg.encoder_type}-seed-{cfg.seed}.pt'))
-
-    explainer.eval()
-    gnn_model.eval()
-
-    with torch.no_grad():
-        explainer.pret_encoder.set_graph(gw.to(device))
-        all_emb = explainer.pret_encoder.get_all_emb(xw)
-        all_emb = [xw, *all_emb]
-
-    metrics = {}
-
-    fidelity_all = [[], []]
-    for g, label in test_loader:
-        torch.cuda.empty_cache()
-        g = g.to(device)
-        label = label.to(device)
-        x = all_emb[0][g.ndata['_ID']]
-        with torch.no_grad():
-            explanation = explainer(g, all_emb, label, training=False, explain=True)
-            explanation = explanation.sigmoid()
-        fidelity_pos, fidelity_neg = fidelity(
-                gnn_model, g, x, explanation, label)
-        fidelity_all[0].extend(fidelity_pos.detach().cpu().numpy())
-        fidelity_all[1].extend(fidelity_neg.detach().cpu().numpy())
-    metrics['fidelity_pos'] = np.mean(fidelity_all[0])
-    metrics['fidelity_neg'] = np.mean(fidelity_all[1])
-
     for k, v in metrics.items():
         print(f"{k}: {np.mean(v)}")
 
